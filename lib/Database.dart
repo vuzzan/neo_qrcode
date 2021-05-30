@@ -29,8 +29,22 @@ class DBProvider {
       await db.execute("CREATE TABLE QRCODE ("
           "id INTEGER PRIMARY KEY AUTOINCREMENT,"
           "qrcode TEXT,"
+          "result TEXT,"
           "create_time DATETIME DEFAULT (datetime('now','localtime'))"
           ")");
+      await db.execute("CREATE TABLE Config ("
+          "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+          "key TEXT,"
+          "active INTEGER,"
+          "value TEXT"
+          ")");
+      await db.rawInsert(
+              "INSERT Into Config (key, value)"
+              " VALUES (?,?)",
+              [
+                "HTTP",
+                '{"method": "post", "url": "http://localhost"}'
+              ]);
       print("CREATE DB");
     });
   }
@@ -40,8 +54,12 @@ class DBProvider {
 
     print("UPGRADE DB START");
     //insert to the table using the new id
+    // try{
+    //   var resConfig = await db.rawQuery("SELECT * FROM Config");
+    
+    // } on Exception catch (exception) {} catch (error) {}
+    
     try {
-      var resConfig = await db.rawQuery("SELECT * FROM Config");
       await db.execute("DROP TABLE IF EXISTS Config");
       await db.execute("CREATE TABLE Config ("
           "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -49,19 +67,26 @@ class DBProvider {
           "active INTEGER,"
           "value TEXT"
           ")");
-      if (resConfig.isNotEmpty) {
-        resConfig.forEach((element) {
-          db.rawInsert(
-              "INSERT Into Config (id, key, value,active )"
-              " VALUES (?,?,?,?)",
-              [
-                element["id"],
-                element["key"],
-                element["value"],
-                element["active"],
-              ]);
-        });
-      }
+      // await db.rawInsert(
+      //         "INSERT Into Config (key, value)"
+      //         " VALUES (?,?)",
+      //         [
+      //           "HTTP",
+      //           '{"method": "post", "url": "http://localhost"}'
+      //         ]);
+      // if (resConfig.isNotEmpty) {
+      //   resConfig.forEach((element) {
+      //     db.rawInsert(
+      //         "INSERT Into Config (id, key, value,active )"
+      //         " VALUES (?,?,?,?)",
+      //         [
+      //           element["id"],
+      //           element["key"],
+      //           element["value"],
+      //           element["active"],
+      //         ]);
+      //   });
+      // }
       //
       print("UPGRADE CONFIG OK ");
       // var httppost = '{"method": "post", "url": "http://localhost"}';
@@ -75,8 +100,12 @@ class DBProvider {
       //     [0, "HTTP", 1, httppost]);
 
       // print("INSERT CONFIG " + rc.toString());
-    } on Exception catch (exception) {} catch (error) {}
-
+    } on Exception catch (exception) {
+      print(exception);
+    } catch (error) {
+      print(error);
+    }
+print("UPGRADE QRCODE");
     try {
       var res = await db.rawQuery("SELECT * FROM Qrcode");
       await db.execute("DROP TABLE IF EXISTS QRCODE");
@@ -86,9 +115,10 @@ class DBProvider {
           "result TEXT,"
           "create_time DATETIME DEFAULT (datetime('now','localtime'))"
           ")");
+      print("UPGRADE QRCODE OK ");
       if (res.isNotEmpty) {
         res.forEach((element) {
-          //print(" upgradeDb = " + element.toString());
+          print(" upgradeDb = " + element.toString());
           db.rawInsert(
               "INSERT Into QRCODE (id, qrcode, create_time, result )"
               " VALUES (?,?,?,?)",
@@ -100,7 +130,11 @@ class DBProvider {
               ]);
         });
       }
-    } on Exception catch (exception) {} catch (error) {}
+    } on Exception catch (exception) {
+      print(exception);
+    } catch (error) {
+      print(error);
+    }
 
     return;
   }
@@ -108,18 +142,42 @@ class DBProvider {
   Future<void> saveConfig(obj) async {
     final db = await database;
     print(json.encode(obj));
-    await await db.rawUpdate("Update Config set value=?", [json.encode(obj)]);
+    try{
+      await getConfig();
+      await db.rawUpdate("Update Config set value=?", [json.encode(obj)]);
+    }
+    on Exception catch (exception) {
+      await db.rawInsert(
+              "INSERT Into Config (key, value)"
+              " VALUES (?,?)",
+              [
+                obj["method"],
+                obj["value"]
+              ]);
+      print(exception);
+    } catch (error) {
+      print(error);
+    }
   }
 
   Future<Map<String, Object?>> getConfig() async {
     final db = await database;
-    var res = await db.rawQuery("SELECT * FROM Config limit 1");
-    print("GET CONFIG ");
-    res.forEach((element) {
-      print(element);
-    });
-    print("GET CONFIG 2");
-    return res.first;
+    try{
+      var res = await db.rawQuery("SELECT * FROM Config limit 1");
+      return res.first;
+    }
+    catch (error) {
+      await db.rawInsert(
+              "INSERT Into Config (key, value)"
+              " VALUES (?,?)",
+              [
+                "HTTP",
+                "http://localhost"
+              ]);
+      var res = await db.rawQuery("SELECT * FROM Config limit 1");
+      return res.first;
+    }
+    
   }
 
   newQrCode(Qrcode newClient) async {

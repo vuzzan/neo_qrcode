@@ -103,12 +103,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> saveConfig() async {
-    print("SAVE CONFIG");
+    // print("SAVE CONFIG");
     setState(() {
       _httpConfig["url"] = myControllerUrl.text;
     });
     await DBProvider.db.saveConfig(_httpConfig);
-    print("LOAD CONFIG");
+    // print("LOAD CONFIG");
     loadConfigHttp();
   }
 
@@ -120,14 +120,14 @@ class _MyAppState extends State<MyApp> {
   }
 
   loadConfigHttp() async {
-    var config = await DBProvider.db.getConfig();
-    var obj = json.decode(config["value"].toString());
-    setState(() {
-      _httpConfig = obj;
-      myControllerUrl.text = obj["url"].toString();
-    });
+      var config = await DBProvider.db.getConfig();
+      var obj = json.decode(config["value"].toString());
+      setState(() {
+        _httpConfig = obj;
+        myControllerUrl.text = obj["url"].toString();
+      });
+      print(obj);
 
-    print(obj);
   }
 
   Future<String> postData(barcodeScanRes) async {

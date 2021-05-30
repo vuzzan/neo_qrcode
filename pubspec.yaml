@@ -33,7 +33,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  flutter_barcode_scanner:
+  flutter_barcode_scanner: 2.0.0
   sqflite:
   path_provider:
   flutter_launcher_icons: "^0.9.0"
